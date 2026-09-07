@@ -1,4 +1,5 @@
-﻿using Domain.Dto;
+﻿using System.Linq.Expressions;
+using Domain.Dto;
 using Domain.Dto.Documents;
 using Domain.Enums;
 using Domain.Models;
@@ -11,66 +12,98 @@ public class DocumentService : IDocumentService
 {
     private readonly IRepository<Document> _documentRepository;
 
-    public DocumentService(IRepository<Document> documentRepository)
+    private static readonly Expression<Func<Document, DocumentDto>>
+        DocumentSelector = x => new DocumentDto
+        {
+            Id = x.Id,
+            Name = x.Name,
+            FilePath = x.FilePath,
+            FileType = x.FileType,
+            CreatedAt = x.CreatedAt,
+            Status = x.Status
+        };
+
+    public DocumentService(
+        IRepository<Document> documentRepository)
     {
         _documentRepository = documentRepository;
     }
 
-    public async Task<DocumentDto> CreateAsync(
-        CreateDocumentDto dto,
-        string userId)
+    public async Task<DocumentDto> CreateAsync(CreateDocumentDto dto, string userId)
     {
+        var now = DateTime.UtcNow;
+
         var document = new Document
         {
             Name = dto.Name,
             FilePath = dto.FilePath,
             FileType = dto.FileType,
+
             Status = DocumentStatus.Pending,
+
             OwnerId = userId,
-            CreatedAt = DateTime.UtcNow,
+
+            CreatedAt = now,
             CreatedBy = userId,
-            ModifiedAt = DateTime.UtcNow,
+
+            ModifiedAt = now,
             ModifiedBy = userId
         };
 
         await _documentRepository.InsertAsync(document);
         await _documentRepository.SaveChangesAsync();
-        
+
         return MapToDto(document);
     }
 
-    public async Task<DocumentDto?> GetByIdAsync(Guid id)
+    public async Task<DocumentDto?> GetByIdAsync(Guid id, string userId)
     {
-        return await _documentRepository.GetAsync(
-            selector: x => MapToDto(x),
-            predicate: x => x.Id == id,
+        return await _documentRepository.GetAsync<DocumentDto>(
+            selector: DocumentSelector,
+            predicate: x =>
+                x.Id == id &&
+                x.OwnerId == userId,
             asNoTracking: true);
     }
 
-    public async Task<List<DocumentDto>> GetAllAsync()
+    public async Task<List<DocumentDto>> GetAllAsync(string userId)
     {
-        return await _documentRepository.GetAllAsync(
-            selector: x => MapToDto(x));
+        return await _documentRepository.GetAllAsync<DocumentDto>(
+            selector: DocumentSelector,
+            predicate: x => x.OwnerId == userId,
+            orderBy: x => x.OrderByDescending(d => d.CreatedAt));
     }
 
-    public async Task<PaginatedResult<DocumentDto>> GetAllPagedAsync(
-        int pageNumber,
-        int pageSize)
+    public async Task<PaginatedResult<DocumentDto>> GetAllPagedAsync(int pageNumber, int pageSize, string userId)
     {
-        return await _documentRepository.GetAllPagedAsync(
-            selector: x => MapToDto(x),
+        if (pageNumber < 1)
+        {
+            throw new ArgumentException(
+                "Page number must be greater than or equal to 1.");
+        }
+
+        if (pageSize <= 0)
+        {
+            throw new ArgumentException(
+                "Page size must be greater than zero.");
+        }
+
+        return await _documentRepository.GetAllPagedAsync<DocumentDto>(
+            selector: DocumentSelector,
             pageNumber: pageNumber,
             pageSize: pageSize,
+            predicate: x => x.OwnerId == userId,
+            orderBy: x => x.OrderByDescending(d => d.CreatedAt),
             asNoTracking: true);
     }
 
-    public async Task<DocumentDto> UpdateAsync(
-        Guid id,
-        UpdateDocumentDto dto)
+    public async Task<DocumentDto> UpdateAsync(Guid id, UpdateDocumentDto dto, string userId)
     {
-        var document = await _documentRepository.GetAsync(
+        var document = await _documentRepository.GetAsync<Document>(
             selector: x => x,
-            predicate: x => x.Id == id);
+            predicate: x =>
+                x.Id == id &&
+                x.OwnerId == userId);
 
         if (document == null)
         {
@@ -80,7 +113,9 @@ public class DocumentService : IDocumentService
 
         document.Name = dto.Name;
         document.Status = dto.Status;
+
         document.ModifiedAt = DateTime.UtcNow;
+        document.ModifiedBy = userId;
 
         await _documentRepository.UpdateAsync(document);
         await _documentRepository.SaveChangesAsync();
@@ -88,11 +123,13 @@ public class DocumentService : IDocumentService
         return MapToDto(document);
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id, string userId)
     {
-        var document = await _documentRepository.GetAsync(
+        var document = await _documentRepository.GetAsync<Document>(
             selector: x => x,
-            predicate: x => x.Id == id);
+            predicate: x =>
+                x.Id == id &&
+                x.OwnerId == userId);
 
         if (document == null)
         {

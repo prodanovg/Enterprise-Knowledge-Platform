@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using Service.Implementation;
 
-namespace Tests.ServiceTests;
+namespace Tests.Authentication;
 
 public class AuthServiceTests
 {

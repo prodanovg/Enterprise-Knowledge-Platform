@@ -4,7 +4,7 @@ using Moq;
 using Service.Interface;
 using Web.Controllers;
 
-namespace Tests.ControllerTests;
+namespace Tests.Authentication;
 
 public class AuthControllerTests
 {
