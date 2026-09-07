@@ -17,35 +17,65 @@ public class Repository<T> : IRepository<T> where T : class
         _entities = _context.Set<T>();
     }
 
-    public async Task<T> DeleteAsync(T entity)
+    public Task<T> InsertAsync(T entity)
     {
-        _context.Remove(entity);
-        await _context.SaveChangesAsync();
-        return entity;
+        _entities.Add(entity);
+        return Task.FromResult(entity);
     }
 
-    public Task<E?> GetAsync<E>(Expression<Func<T, E>> selector, Expression<Func<T, bool>>? predicate = null,
+    public Task<T> UpdateAsync(T entity)
+    {
+        _entities.Update(entity);
+        return Task.FromResult(entity);
+    }
+
+    public Task<T> DeleteAsync(T entity)
+    {
+        _entities.Remove(entity);
+        return Task.FromResult(entity);
+    }
+
+    public Task<int> SaveChangesAsync()
+    {
+        return _context.SaveChangesAsync();
+    }
+
+    public async Task<E?> GetAsync<E>(
+        Expression<Func<T, E>> selector,
+        Expression<Func<T, bool>>? predicate = null,
         Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
         Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
         bool asNoTracking = false)
     {
         IQueryable<T> query = _entities;
+
         if (predicate != null)
+        {
             query = query.Where(predicate);
+        }
+
         if (include != null)
+        {
             query = include(query);
+        }
+
         if (asNoTracking)
+        {
             query = query.AsNoTracking();
+        }
 
-        var finalQuery = orderBy != null ? (IQueryable<T>)orderBy(query) : query;
+        if (orderBy != null)
+        {
+            query = orderBy(query);
+        }
 
-        if (typeof(E) == typeof(T))
-            return (Task<E?>)(object)finalQuery.FirstOrDefaultAsync();
-
-        return finalQuery.Select(selector).FirstOrDefaultAsync();
+        return await query
+            .Select(selector)
+            .FirstOrDefaultAsync();
     }
 
-    public async Task<List<E>> GetAllAsync<E>(Expression<Func<T, E>> selector,
+    public async Task<List<E>> GetAllAsync<E>(
+        Expression<Func<T, E>> selector,
         Expression<Func<T, bool>>? predicate = null,
         Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
         Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
@@ -53,28 +83,29 @@ public class Repository<T> : IRepository<T> where T : class
     {
         IQueryable<T> query = _entities;
 
-        if (include != null)
-        {
-            query = include(query);
-        }
-
         if (predicate != null)
         {
             query = query.Where(predicate);
         }
 
+        if (include != null)
+        {
+            query = include(query);
+        }
+
         if (orderBy != null)
         {
-            orderBy(query);
+            query = orderBy(query);
         }
-            
+
         if (take.HasValue)
         {
             query = query.Take(take.Value);
         }
 
-
-        return await query.Select(selector).ToListAsync();
+        return await query
+            .Select(selector)
+            .ToListAsync();
     }
 
     public async Task<PaginatedResult<E>> GetAllPagedAsync<E>(
@@ -93,37 +124,31 @@ public class Repository<T> : IRepository<T> where T : class
             query = query.AsNoTracking();
         }
 
-        if (include != null)
-        {
-            query = include(query);
-        }
-
         if (predicate != null)
         {
             query = query.Where(predicate);
         }
 
-        var totalCount = await query.CountAsync();
+        if (include != null)
+        {
+            query = include(query);
+        }
 
-        IQueryable<E> pagedQuery;
+        var totalCount = await query.CountAsync();
 
         if (orderBy != null)
         {
-            pagedQuery = orderBy(query)
-                .Skip(pageNumber * pageSize)
-                .Take(pageSize)
-                .Select(selector);
-        }
-        else
-        {
-            pagedQuery = query
-                .Skip(pageNumber * pageSize)
-                .Take(pageSize)
-                .Select(selector);
+            query = orderBy(query);
         }
 
-        var items = await pagedQuery.ToListAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(selector)
+            .ToListAsync();
+
+        var totalPages = (int)Math.Ceiling(
+            totalCount / (double)pageSize);
 
         return new PaginatedResult<E>
         {
@@ -144,10 +169,14 @@ public class Repository<T> : IRepository<T> where T : class
         IQueryable<T> query = _entities;
 
         if (asNoTracking)
+        {
             query = query.AsNoTracking();
+        }
 
         if (predicate != null)
+        {
             query = query.Where(predicate);
+        }
 
         return await query
             .GroupBy(groupBy)
@@ -155,22 +184,8 @@ public class Repository<T> : IRepository<T> where T : class
             .ToListAsync();
     }
 
-    async Task<T> IRepository<T>.InsertAsync(T entity)
-    {
-        _context.Add(entity);
-        await _context.SaveChangesAsync();
-        _context.Entry(entity).State = EntityState.Detached;
-        return entity;
-    }
-
-    async Task<T> IRepository<T>.UpdateAsync(T entity)
-    {
-        _context.Update(entity);
-        await _context.SaveChangesAsync();
-        return entity;
-    }
-
-    public Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate)
+    public Task<bool> ExistsAsync(
+        Expression<Func<T, bool>> predicate)
     {
         return _entities.AnyAsync(predicate);
     }

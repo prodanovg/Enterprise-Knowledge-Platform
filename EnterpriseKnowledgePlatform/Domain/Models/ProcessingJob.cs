@@ -10,4 +10,6 @@ public class ProcessingJob : BaseAuditableEntity<string>
     public DateTime? StartedAt { get; set; }
     public DateTime? FinishedAt { get; set; }
     public string? ErrorMessage { get; set; }
+
+    public Document Document { get; set; } = null!;
 }

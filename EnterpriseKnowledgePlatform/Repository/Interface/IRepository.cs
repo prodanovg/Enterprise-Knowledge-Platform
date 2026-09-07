@@ -39,4 +39,6 @@ public interface IRepository<T> where T : class
         bool asNoTracking = false);
 
     Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
+    
+    Task<int> SaveChangesAsync();
 }

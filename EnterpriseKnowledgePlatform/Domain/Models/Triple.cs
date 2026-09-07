@@ -10,4 +10,7 @@ public class Triple : BaseAuditableEntity<string>
     public string Object { get; set; } = string.Empty;
     public decimal Confidence { get; set; }
     public TripleStatus Status { get; set; }
+
+    public ICollection<TripleProvenance> TripleProvenances { get; set; } =
+        new List<TripleProvenance>();
 }
