@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Domain.Dto.Authentication;
@@ -40,9 +40,7 @@ public class AuthService : IAuthService
             Name = dto.Name
         };
 
-        var result = await _userManager.CreateAsync(
-            user,
-            dto.Password);
+        var result = await _userManager.CreateAsync(user, dto.Password);
 
         if (!result.Succeeded)
         {
@@ -78,8 +76,7 @@ public class AuthService : IAuthService
         }
 
         var passwordValid = await _userManager.CheckPasswordAsync(
-            user,
-            dto.Password);
+            user, dto.Password);
 
         if (!passwordValid)
         {
@@ -88,7 +85,6 @@ public class AuthService : IAuthService
         }
 
         var roles = await _userManager.GetRolesAsync(user);
-
         var token = await GenerateJwtTokenAsync(user);
 
         return new AuthResponseDto
@@ -101,11 +97,10 @@ public class AuthService : IAuthService
         };
     }
 
-    private async Task<(string Token, DateTime Expiration)>
-        GenerateJwtTokenAsync(User user)
+    private async Task<(string Token, DateTime Expiration)> GenerateJwtTokenAsync(
+        User user)
     {
-        var jwtSettings = _configuration
-            .GetSection("Jwt");
+        var jwtSettings = _configuration.GetSection("Jwt");
 
         var key = jwtSettings["Key"]
                   ?? throw new InvalidOperationException(
@@ -120,8 +115,7 @@ public class AuthService : IAuthService
                            "JWT Audience is not configured.");
 
         var expirationMinutes = int.Parse(
-            jwtSettings["ExpirationMinutes"]
-            ?? "60");
+            jwtSettings["ExpirationMinutes"] ?? "60");
 
         var roles = await _userManager.GetRolesAsync(user);
 
@@ -134,19 +128,16 @@ public class AuthService : IAuthService
 
         foreach (var role in roles)
         {
-            claims.Add(
-                new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
         var signingKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(key));
 
         var credentials = new SigningCredentials(
-            signingKey,
-            SecurityAlgorithms.HmacSha256);
+            signingKey, SecurityAlgorithms.HmacSha256);
 
-        var expiration = DateTime.UtcNow
-            .AddMinutes(expirationMinutes);
+        var expiration = DateTime.UtcNow.AddMinutes(expirationMinutes);
 
         var token = new JwtSecurityToken(
             issuer: issuer,
@@ -155,8 +146,7 @@ public class AuthService : IAuthService
             expires: expiration,
             signingCredentials: credentials);
 
-        var tokenString = new JwtSecurityTokenHandler()
-            .WriteToken(token);
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
         return (tokenString, expiration);
     }

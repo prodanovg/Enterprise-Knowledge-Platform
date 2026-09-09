@@ -11,6 +11,7 @@ using Repository.Interface;
 using Service.Implementation;
 using Service.Interface;
 using Web.Data;
+using Web.Mapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,6 +74,18 @@ builder.Services.AddScoped(
     typeof(Repository<>));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProcessingJobService, ProcessingJobService>();
+builder.Services.AddScoped<ISemanticBlockService, SemanticBlockService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<ITripleProvenanceService, TripleProvenanceService>();
+builder.Services.AddScoped<ITripleService, TripleService>();
+
+builder.Services.AddScoped<AuthMapper>();
+builder.Services.AddScoped<DocumentMapper>();
+builder.Services.AddScoped<ProcessingJobMapper>();
+builder.Services.AddScoped<SemanticBlockMapper>();
+builder.Services.AddScoped<TripleProvenanceMapper>();
+builder.Services.AddScoped<TripleMapper>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

@@ -1,9 +1,10 @@
-﻿using System.Security.Claims;
-using Domain.Dto;
-using Domain.Dto.Documents;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Service.Interface;
+using Web.Mapper;
+using Web.Request.Documents;
+using Web.Response;
+using Web.Response.Documents;
 
 namespace Web.Controllers;
 
@@ -12,41 +13,37 @@ namespace Web.Controllers;
 [Authorize]
 public class DocumentController : ControllerBase
 {
-    private readonly IDocumentService _documentService;
+    private readonly DocumentMapper _documentMapper;
 
-    public DocumentController(IDocumentService documentService)
+    public DocumentController(DocumentMapper documentMapper)
     {
-        _documentService = documentService;
+        _documentMapper = documentMapper;
     }
 
     [HttpPost]
-    public async Task<ActionResult<DocumentDto>> Create(
-        [FromBody] CreateDocumentDto dto)
+    public async Task<ActionResult<DocumentResponse>> Create(
+        [FromBody] CreateDocumentRequest request)
     {
         var userId = GetUserId();
-
         if (userId == null)
         {
             return Unauthorized();
         }
 
-        var document = await _documentService.CreateAsync(dto, userId);
-
+        var document = await _documentMapper.CreateAsync(request, userId);
         return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<DocumentDto>> GetById(Guid id)
+    public async Task<ActionResult<DocumentResponse>> GetById(Guid id)
     {
         var userId = GetUserId();
-
         if (userId == null)
         {
             return Unauthorized();
         }
 
-        var document = await _documentService.GetByIdAsync(id, userId);
-
+        var document = await _documentMapper.GetByIdAsync(id, userId);
         if (document == null)
         {
             return NotFound();
@@ -56,22 +53,21 @@ public class DocumentController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<DocumentDto>>> GetAll()
+    public async Task<ActionResult<List<DocumentResponse>>> GetAll()
     {
         var userId = GetUserId();
-
         if (userId == null)
         {
             return Unauthorized();
         }
 
-        var documents = await _documentService.GetAllAsync(userId);
-        return Ok(documents);
+        return Ok(await _documentMapper.GetAllAsync(userId));
     }
 
     [HttpGet("paged")]
-    public async Task<ActionResult<PaginatedResult<DocumentDto>>>
-        GetAllPaged([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PaginatedResponse<DocumentResponse>>> GetAllPaged(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
     {
         if (pageNumber < 1)
         {
@@ -84,22 +80,20 @@ public class DocumentController : ControllerBase
         }
 
         var userId = GetUserId();
-
         if (userId == null)
         {
             return Unauthorized();
         }
 
-        var result = await _documentService.GetAllPagedAsync(pageNumber, pageSize, userId);
-
-        return Ok(result);
+        return Ok(await _documentMapper.GetAllPagedAsync(
+            pageNumber, pageSize, userId));
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<DocumentDto>> Update(Guid id, [FromBody] UpdateDocumentDto dto)
+    public async Task<ActionResult<DocumentResponse>> Update(
+        Guid id, [FromBody] UpdateDocumentRequest request)
     {
         var userId = GetUserId();
-
         if (userId == null)
         {
             return Unauthorized();
@@ -107,9 +101,7 @@ public class DocumentController : ControllerBase
 
         try
         {
-            var document = await _documentService.UpdateAsync(id, dto, userId);
-
-            return Ok(document);
+            return Ok(await _documentMapper.UpdateAsync(id, request, userId));
         }
         catch (KeyNotFoundException)
         {
@@ -121,15 +113,12 @@ public class DocumentController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var userId = GetUserId();
-
         if (userId == null)
         {
             return Unauthorized();
         }
 
-        var deleted = await _documentService.DeleteAsync(id, userId);
-
-        if (!deleted)
+        if (!await _documentMapper.DeleteAsync(id, userId))
         {
             return NotFound();
         }
@@ -139,7 +128,6 @@ public class DocumentController : ControllerBase
 
     private string? GetUserId()
     {
-        return User.FindFirstValue(
-            ClaimTypes.NameIdentifier);
+        return User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
 }

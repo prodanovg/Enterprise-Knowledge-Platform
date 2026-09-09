@@ -1,6 +1,7 @@
-﻿using Domain.Dto.Authentication;
 using Microsoft.AspNetCore.Mvc;
-using Service.Interface;
+using Web.Mapper;
+using Web.Request.Authentication;
+using Web.Response.Authentication;
 
 namespace Web.Controllers;
 
@@ -8,48 +9,40 @@ namespace Web.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IAuthService _authService;
+    private readonly AuthMapper _authMapper;
 
-    public AuthController(IAuthService authService)
+    public AuthController(AuthMapper authMapper)
     {
-        _authService = authService;
+        _authMapper = authMapper;
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(
-        [FromBody] RegisterDto dto)
+    public async Task<ActionResult<AuthResponse>> Register(
+        [FromBody] RegisterRequest request)
     {
         try
         {
-            var result = await _authService.RegisterAsync(dto);
-
+            var result = await _authMapper.RegisterAsync(request);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
+            return BadRequest(new { message = ex.Message });
         }
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login(
-        [FromBody] LoginDto dto)
+    public async Task<ActionResult<AuthResponse>> Login(
+        [FromBody] LoginRequest request)
     {
         try
         {
-            var result = await _authService.LoginAsync(dto);
-
+            var result = await _authMapper.LoginAsync(request);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Unauthorized(new
-            {
-                message = ex.Message
-            });
+            return Unauthorized(new { message = ex.Message });
         }
     }
 }
