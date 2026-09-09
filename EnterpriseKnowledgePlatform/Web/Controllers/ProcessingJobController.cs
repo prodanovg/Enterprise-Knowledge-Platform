@@ -42,6 +42,26 @@ public class ProcessingJobController : ControllerBase
         }
     }
 
+    [HttpPost("run")]
+    public async Task<ActionResult<List<ProcessingJobResponse>>> StartProcessing(
+        [FromBody] StartProcessingRequest request)
+    {
+        var userId = GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            return Ok(await _processingJobMapper.StartProcessingAsync(request, userId));
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ProcessingJobResponse>> GetById(Guid id)
     {

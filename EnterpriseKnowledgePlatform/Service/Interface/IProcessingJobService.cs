@@ -7,6 +7,8 @@ namespace Service.Interface;
 public interface IProcessingJobService
 {
     Task<ProcessingJob> CreateAsync(CreateProcessingJobDto dto, string userId);
+    Task<List<ProcessingJob>> StartProcessingAsync(
+        IEnumerable<Guid> documentIds, string userId);
     Task<ProcessingJob?> GetByIdAsync(Guid id, string userId);
     Task<List<ProcessingJob>> GetAllAsync(string userId);
     Task<PaginatedResult<ProcessingJob>> GetAllPagedAsync(
@@ -15,4 +17,3 @@ public interface IProcessingJobService
         Guid id, UpdateProcessingJobDto dto, string userId);
     Task<bool> DeleteAsync(Guid id, string userId);
 }
-

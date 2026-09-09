@@ -50,6 +50,66 @@ public class ProcessingJobService : IProcessingJobService
         return processingJob;
     }
 
+    public async Task<List<ProcessingJob>> StartProcessingAsync(
+        IEnumerable<Guid> documentIds, string userId)
+    {
+        var ids = documentIds.Distinct().ToList();
+        var documents = new List<Document>();
+
+        foreach (var documentId in ids)
+        {
+            var document = await _documentRepository.GetAsync<Document>(
+                selector: x => x,
+                predicate: x => x.Id == documentId && x.OwnerId == userId);
+
+            if (document == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Document with ID '{documentId}' was not found.");
+            }
+
+            documents.Add(document);
+        }
+
+        var jobs = new List<ProcessingJob>();
+        var now = DateTime.UtcNow;
+
+        foreach (var document in documents)
+        {
+            var activeJob = await _processingJobRepository
+                .GetAsync<ProcessingJob>(
+                    selector: x => x,
+                    predicate: x => x.DocumentId == document.Id &&
+                        (x.Status == ProcessingJobStatus.Pending ||
+                         x.Status == ProcessingJobStatus.Processing));
+
+            if (activeJob != null)
+            {
+                continue;
+            }
+
+            var job = new ProcessingJob
+            {
+                DocumentId = document.Id,
+                Status = ProcessingJobStatus.Pending,
+                CreatedAt = now,
+                CreatedBy = userId,
+                ModifiedAt = now,
+                ModifiedBy = userId
+            };
+
+            await _processingJobRepository.InsertAsync(job);
+            jobs.Add(job);
+        }
+
+        if (jobs.Count > 0)
+        {
+            await _processingJobRepository.SaveChangesAsync();
+        }
+
+        return jobs;
+    }
+
     public Task<ProcessingJob?> GetByIdAsync(Guid id, string userId)
     {
         return _processingJobRepository.GetAsync<ProcessingJob>(
@@ -135,4 +195,3 @@ public class ProcessingJobService : IProcessingJobService
         return true;
     }
 }
-

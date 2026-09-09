@@ -9,6 +9,7 @@ using Service.Interface;
 using Web.Controllers;
 using Web.Mapper;
 using Web.Request.Documents;
+using Web.Services;
 using Xunit;
 
 namespace Tests.Document;
@@ -21,14 +22,24 @@ public class DocumentControllerTests
     public DocumentControllerTests()
     {
         _serviceMock = new Mock<IDocumentService>();
-        _controller = new DocumentController(new DocumentMapper(_serviceMock.Object));
+        _controller = new DocumentController(new DocumentMapper(
+            _serviceMock.Object, new Mock<IFileStorageService>().Object));
     }
 
     [Fact]
     public async Task Create_ShouldReturnCreatedAtAction()
     {
         SetUser("user-id");
-        var request = new CreateDocumentRequest { Name = "Document" };
+        await using var stream = new MemoryStream(new byte[] { 1 });
+        var request = new CreateDocumentRequest
+        {
+            Name = "Document",
+            File = new FormFile(stream, 0, stream.Length, "File", "document.pdf")
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "application/pdf"
+            }
+        };
         _serviceMock.Setup(x => x.CreateAsync(It.IsAny<CreateDocumentDto>(), "user-id"))
             .ReturnsAsync(new DocumentEntity { Id = Guid.NewGuid(), Name = "Document" });
 
@@ -106,6 +117,13 @@ public class DocumentControllerTests
     {
         SetUser("user-id");
         var id = Guid.NewGuid();
+        _serviceMock.Setup(x => x.GetByIdAsync(id, "user-id"))
+            .ReturnsAsync(new DocumentEntity
+            {
+                Id = id,
+                OwnerId = "user-id",
+                FilePath = "generated-file.pdf"
+            });
         _serviceMock.Setup(x => x.DeleteAsync(id, "user-id")).ReturnsAsync(true);
         Assert.IsType<NoContentResult>(await _controller.Delete(id));
         _serviceMock.Setup(x => x.DeleteAsync(id, "user-id")).ReturnsAsync(false);
@@ -133,4 +151,3 @@ public class DocumentControllerTests
         };
     }
 }
-

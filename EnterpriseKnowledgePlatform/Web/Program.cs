@@ -12,6 +12,9 @@ using Service.Implementation;
 using Service.Interface;
 using Web.Data;
 using Web.Mapper;
+using Web.Workers;
+using Web.Clients;
+using Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,6 +82,11 @@ builder.Services.AddScoped<ISemanticBlockService, SemanticBlockService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<ITripleProvenanceService, TripleProvenanceService>();
 builder.Services.AddScoped<ITripleService, TripleService>();
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<IEntityTypeService, EntityTypeService>();
+builder.Services.AddScoped<IGraphEntityService, GraphEntityService>();
+builder.Services.AddScoped<IGraphRelationshipService, GraphRelationshipService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddScoped<AuthMapper>();
 builder.Services.AddScoped<DocumentMapper>();
@@ -86,6 +94,21 @@ builder.Services.AddScoped<ProcessingJobMapper>();
 builder.Services.AddScoped<SemanticBlockMapper>();
 builder.Services.AddScoped<TripleProvenanceMapper>();
 builder.Services.AddScoped<TripleMapper>();
+builder.Services.AddScoped<ApiKeyMapper>();
+builder.Services.AddScoped<EntityTypeMapper>();
+builder.Services.AddScoped<GraphEntityMapper>();
+builder.Services.AddScoped<GraphRelationshipMapper>();
+builder.Services.AddScoped<NotificationMapper>();
+builder.Services.AddHostedService<ProcessingJobWorker>();
+builder.Services.AddHttpClient<IProcessingApiClient, ProcessingApiClient>((serviceProvider, client) =>
+{
+    var baseUrl = serviceProvider.GetRequiredService<IConfiguration>()["FastApi:BaseUrl"];
+    if (!string.IsNullOrWhiteSpace(baseUrl))
+    {
+        client.BaseAddress = new Uri(baseUrl);
+    }
+});
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

@@ -84,7 +84,86 @@ public class ProcessingJobServiceTests
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             _processingJobService.CreateAsync(
                 new CreateProcessingJobDto { DocumentId = document.Id },
-                "user-id"));
+            "user-id"));
+    }
+
+    [Fact]
+    public async Task StartProcessingAsync_ShouldCreatePendingJobsForOwnedDocuments()
+    {
+        var userId = "user-id";
+        var documents = new[]
+        {
+            new DocumentEntity { Id = Guid.NewGuid(), OwnerId = userId },
+            new DocumentEntity { Id = Guid.NewGuid(), OwnerId = userId }
+        };
+        _documentRepositoryMock
+            .Setup(x => x.GetAsync<DocumentEntity>(
+                It.IsAny<Expression<Func<DocumentEntity, DocumentEntity>>>(),
+                It.IsAny<Expression<Func<DocumentEntity, bool>>>(), null, null, false))
+            .ReturnsAsync((Expression<Func<DocumentEntity, DocumentEntity>> _,
+                Expression<Func<DocumentEntity, bool>> predicate, Func<IQueryable<DocumentEntity>, IOrderedQueryable<DocumentEntity>>? _,
+                Microsoft.EntityFrameworkCore.Query.IIncludableQueryable<DocumentEntity, object>? _, bool _) =>
+                documents.FirstOrDefault(predicate.Compile()));
+        _processingJobRepositoryMock
+            .Setup(x => x.GetAsync<ProcessingJobEntity>(
+                It.IsAny<Expression<Func<ProcessingJobEntity, ProcessingJobEntity>>>(),
+                It.IsAny<Expression<Func<ProcessingJobEntity, bool>>>(), null, null, false))
+            .ReturnsAsync((ProcessingJobEntity?)null);
+        _processingJobRepositoryMock
+            .Setup(x => x.InsertAsync(It.IsAny<ProcessingJobEntity>()))
+            .ReturnsAsync((ProcessingJobEntity job) => job);
+        _processingJobRepositoryMock.Setup(x => x.SaveChangesAsync()).ReturnsAsync(2);
+
+        var result = await _processingJobService.StartProcessingAsync(
+            documents.Select(x => x.Id), userId);
+
+        Assert.Equal(2, result.Count);
+        Assert.All(result, job =>
+        {
+            Assert.Equal(ProcessingJobStatus.Pending, job.Status);
+            Assert.Equal(userId, job.CreatedBy);
+        });
+        _processingJobRepositoryMock.Verify(
+            x => x.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task StartProcessingAsync_ShouldSkipExistingActiveJobs()
+    {
+        var document = new DocumentEntity { Id = Guid.NewGuid(), OwnerId = "user-id" };
+        _documentRepositoryMock
+            .Setup(x => x.GetAsync<DocumentEntity>(It.IsAny<Expression<Func<DocumentEntity, DocumentEntity>>>(),
+                It.IsAny<Expression<Func<DocumentEntity, bool>>>(), null, null, false))
+            .ReturnsAsync(document);
+        _processingJobRepositoryMock
+            .Setup(x => x.GetAsync<ProcessingJobEntity>(It.IsAny<Expression<Func<ProcessingJobEntity, ProcessingJobEntity>>>(),
+                It.IsAny<Expression<Func<ProcessingJobEntity, bool>>>(), null, null, false))
+            .ReturnsAsync(new ProcessingJobEntity
+            { DocumentId = document.Id, Status = ProcessingJobStatus.Processing });
+
+        var result = await _processingJobService.StartProcessingAsync(
+            new[] { document.Id }, "user-id");
+
+        Assert.Empty(result);
+        _processingJobRepositoryMock.Verify(
+            x => x.InsertAsync(It.IsAny<ProcessingJobEntity>()), Times.Never);
+        _processingJobRepositoryMock.Verify(
+            x => x.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task StartProcessingAsync_ShouldRejectAnyUnownedDocument()
+    {
+        _documentRepositoryMock
+            .Setup(x => x.GetAsync<DocumentEntity>(It.IsAny<Expression<Func<DocumentEntity, DocumentEntity>>>(),
+                It.IsAny<Expression<Func<DocumentEntity, bool>>>(), null, null, false))
+            .ReturnsAsync((DocumentEntity?)null);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            _processingJobService.StartProcessingAsync(
+                new[] { Guid.NewGuid() }, "user-id"));
+        _processingJobRepositoryMock.Verify(
+            x => x.InsertAsync(It.IsAny<ProcessingJobEntity>()), Times.Never);
     }
 
     [Fact]
@@ -272,4 +351,3 @@ public class ProcessingJobServiceTests
         };
     }
 }
-

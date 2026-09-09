@@ -24,6 +24,14 @@ public class ProcessingJobMapper
         return processingJob.ToResponse();
     }
 
+    public async Task<List<ProcessingJobResponse>> StartProcessingAsync(
+        StartProcessingRequest request, string userId)
+    {
+        var processingJobs = await _processingJobService
+            .StartProcessingAsync(request.DocumentIds, userId);
+        return processingJobs.ToResponse();
+    }
+
     public async Task<ProcessingJobResponse?> GetByIdAsync(Guid id, string userId)
     {
         var processingJob = await _processingJobService.GetByIdAsync(id, userId);

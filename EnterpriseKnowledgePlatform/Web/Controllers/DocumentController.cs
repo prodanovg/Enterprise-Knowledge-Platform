@@ -22,7 +22,7 @@ public class DocumentController : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<DocumentResponse>> Create(
-        [FromBody] CreateDocumentRequest request)
+        [FromForm] CreateDocumentRequest request)
     {
         var userId = GetUserId();
         if (userId == null)
@@ -30,8 +30,15 @@ public class DocumentController : ControllerBase
             return Unauthorized();
         }
 
-        var document = await _documentMapper.CreateAsync(request, userId);
-        return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
+        try
+        {
+            var document = await _documentMapper.CreateAsync(request, userId);
+            return CreatedAtAction(nameof(GetById), new { id = document.Id }, document);
+        }
+        catch (ArgumentException)
+        {
+            return BadRequest("An uploaded file is required and must not be empty.");
+        }
     }
 
     [HttpGet("{id:guid}")]

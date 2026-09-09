@@ -55,6 +55,27 @@ public class ProcessingJobControllerTests
     }
 
     [Fact]
+    public async Task StartProcessing_ShouldReturnOkNotFoundOrUnauthorized()
+    {
+        SetUser("user-id");
+        var request = new StartProcessingRequest
+        { DocumentIds = new List<Guid> { Guid.NewGuid() } };
+        _serviceMock.Setup(x => x.StartProcessingAsync(request.DocumentIds, "user-id"))
+            .ReturnsAsync(new List<ProcessingJobEntity>());
+        Assert.IsType<OkObjectResult>(
+            (await _controller.StartProcessing(request)).Result);
+
+        _serviceMock.Setup(x => x.StartProcessingAsync(request.DocumentIds, "user-id"))
+            .ThrowsAsync(new KeyNotFoundException());
+        Assert.IsType<NotFoundResult>(
+            (await _controller.StartProcessing(request)).Result);
+
+        SetUnauthenticatedUser();
+        Assert.IsType<UnauthorizedResult>(
+            (await _controller.StartProcessing(request)).Result);
+    }
+
+    [Fact]
     public async Task GetById_ShouldReturnOkOrNotFound()
     {
         SetUser("user-id");
@@ -140,4 +161,3 @@ public class ProcessingJobControllerTests
         };
     }
 }
-

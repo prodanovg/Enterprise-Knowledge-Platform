@@ -4,23 +4,43 @@ using Web.Extensions;
 using Web.Request.Documents;
 using Web.Response;
 using Web.Response.Documents;
+using Web.Services;
 
 namespace Web.Mapper;
 
 public class DocumentMapper
 {
     private readonly IDocumentService _documentService;
+    private readonly IFileStorageService _fileStorageService;
 
-    public DocumentMapper(IDocumentService documentService)
+    public DocumentMapper(
+        IDocumentService documentService,
+        IFileStorageService fileStorageService)
     {
         _documentService = documentService;
+        _fileStorageService = fileStorageService;
     }
 
     public async Task<DocumentResponse> CreateAsync(
         CreateDocumentRequest request, string userId)
     {
-        var document = await _documentService.CreateAsync(ToDto(request), userId);
-        return document.ToResponse();
+        if (request.File == null || request.File.Length <= 0)
+        {
+            throw new ArgumentException("Uploaded file must not be empty.");
+        }
+
+        var fileReference = await _fileStorageService.SaveAsync(request.File);
+        try
+        {
+            var document = await _documentService.CreateAsync(
+                ToDto(request, fileReference), userId);
+            return document.ToResponse();
+        }
+        catch
+        {
+            await _fileStorageService.DeleteAsync(fileReference);
+            throw;
+        }
     }
 
     public async Task<DocumentResponse?> GetByIdAsync(Guid id, string userId)
@@ -51,18 +71,33 @@ public class DocumentMapper
         return document.ToResponse();
     }
 
-    public Task<bool> DeleteAsync(Guid id, string userId)
+    public async Task<bool> DeleteAsync(Guid id, string userId)
     {
-        return _documentService.DeleteAsync(id, userId);
+        var document = await _documentService.GetByIdAsync(id, userId);
+        if (document == null)
+        {
+            return false;
+        }
+
+        var deleted = await _documentService.DeleteAsync(id, userId);
+        if (deleted)
+        {
+            await _fileStorageService.DeleteAsync(document.FilePath);
+        }
+
+        return deleted;
     }
 
-    public static CreateDocumentDto ToDto(CreateDocumentRequest request)
+    public static CreateDocumentDto ToDto(
+        CreateDocumentRequest request, string fileReference)
     {
         return new CreateDocumentDto
         {
             Name = request.Name,
-            FilePath = request.FilePath,
-            FileType = request.FileType
+            FilePath = fileReference,
+            FileType = !string.IsNullOrWhiteSpace(request.File!.ContentType)
+                ? request.File.ContentType
+                : Path.GetExtension(request.File.FileName)
         };
     }
 
