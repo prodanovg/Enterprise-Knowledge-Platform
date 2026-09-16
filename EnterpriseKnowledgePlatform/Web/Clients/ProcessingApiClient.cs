@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Domain.Models;
 using Web.Services;
+using Web.Response;
 
 namespace Web.Clients;
 
@@ -21,7 +22,7 @@ public class ProcessingApiClient
         _fileStorageService = fileStorageService;
     }
 
-    public async Task SendProcessingJobAsync(
+    public async Task<ProcessingApiResponse> SendProcessingJobAsync(
         ProcessingJob processingJob,
         Document document,
         CancellationToken cancellationToken = default)
@@ -37,5 +38,9 @@ public class ProcessingApiClient
         using var response = await _httpClient.PostAsync(path, content, cancellationToken);
 
         response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<ProcessingApiResponse>(
+                   cancellationToken: cancellationToken)
+               ?? new ProcessingApiResponse { Success = false };
     }
 }

@@ -5,6 +5,7 @@ using Web.Mapper;
 using Web.Request.ProcessingJobs;
 using Web.Response;
 using Web.Response.ProcessingJobs;
+using Service.Interface;
 
 namespace Web.Controllers;
 
@@ -14,10 +15,21 @@ namespace Web.Controllers;
 public class ProcessingJobController : ControllerBase
 {
     private readonly ProcessingJobMapper _processingJobMapper;
+    private readonly ProcessingResultMapper? _processingResultMapper;
 
-    public ProcessingJobController(ProcessingJobMapper processingJobMapper)
+    public ProcessingJobController(ProcessingJobMapper processingJobMapper, ProcessingResultMapper? processingResultMapper = null)
     {
         _processingJobMapper = processingJobMapper;
+        _processingResultMapper = processingResultMapper;
+    }
+
+    [HttpPost("{id:guid}/result")]
+    public async Task<ActionResult<ProcessingResultSummary>> Result(Guid id, ProcessingResultRequest request)
+    {
+        try { return Ok(await _processingResultMapper!.PersistAsync(id, request, HttpContext.RequestAborted)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException) { return Conflict(); }
+        catch (ArgumentException) { return BadRequest(); }
     }
 
     [HttpPost]
@@ -60,6 +72,16 @@ public class ProcessingJobController : ControllerBase
         {
             return NotFound();
         }
+    }
+
+    [HttpPost("{id:guid}/retry")]
+    public async Task<ActionResult<ProcessingJobResponse>> Retry(Guid id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        try { return Ok(await _processingJobMapper.RetryAsync(id, userId)); }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException) { return Conflict(); }
     }
 
     [HttpGet("{id:guid}")]

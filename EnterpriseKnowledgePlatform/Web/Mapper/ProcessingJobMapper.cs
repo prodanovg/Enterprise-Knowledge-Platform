@@ -38,6 +38,12 @@ public class ProcessingJobMapper
         return processingJob?.ToResponse();
     }
 
+    public async Task<ProcessingJobResponse> RetryAsync(Guid id, string userId)
+    {
+        var processingJob = await _processingJobService.RetryAsync(id, userId);
+        return processingJob.ToResponse();
+    }
+
     public async Task<List<ProcessingJobResponse>> GetAllAsync(string userId)
     {
         var processingJobs = await _processingJobService.GetAllAsync(userId);

@@ -2,6 +2,8 @@ using Domain.Enums;
 using Domain.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Repository.Interface;
+using Service.Interface;
+using Domain.Dto.Notifications;
 using Web.Clients;
 
 namespace Web.Workers;
@@ -51,6 +53,12 @@ public class ProcessingJobWorker : BackgroundService
                 .GetRequiredService<IRepository<Document>>();
             var processingApiClient = scope.ServiceProvider
                 .GetRequiredService<IProcessingApiClient>();
+            var notificationService = scope.ServiceProvider
+                .GetRequiredService<INotificationService>();
+            var emailService = scope.ServiceProvider
+                .GetRequiredService<IEmailService>();
+            var userRepository = scope.ServiceProvider
+                .GetRequiredService<IRepository<User>>();
             var jobs = await repository.GetAllAsync<ProcessingJob>(
                 x => x,
                 x => x.Status == ProcessingJobStatus.Pending,
@@ -84,15 +92,28 @@ public class ProcessingJobWorker : BackgroundService
                         throw new FileNotFoundException("Processing document was not found.");
                     }
 
-                    await processingApiClient.SendProcessingJobAsync(
+                    var result = await processingApiClient.SendProcessingJobAsync(
                         job, document, cancellationToken);
+                    job.FinishedAt = DateTime.UtcNow;
+                    job.ModifiedAt = job.FinishedAt.Value;
+                    job.Status = result.Success
+                        ? ProcessingJobStatus.Completed
+                        : ProcessingJobStatus.Failed;
+                    job.ErrorMessage = result.Success
+                        ? null
+                        : "FastAPI processing failed.";
+                    await repository.UpdateAsync(job);
+                    await repository.SaveChangesAsync();
+                    await NotifyUserAsync(job, document, userRepository,
+                        notificationService, emailService, cancellationToken);
                 }
                 catch (Exception exception) when (
                     exception is HttpRequestException ||
                     exception is InvalidOperationException ||
                     exception is TaskCanceledException ||
                     exception is FileNotFoundException ||
-                    exception is ArgumentException)
+                    exception is ArgumentException ||
+                    exception is IOException)
                 {
                     job.Status = ProcessingJobStatus.Failed;
                     job.ErrorMessage = "Processing API communication failed.";
@@ -100,6 +121,13 @@ public class ProcessingJobWorker : BackgroundService
                     job.ModifiedAt = job.FinishedAt.Value;
                     await repository.UpdateAsync(job);
                     await repository.SaveChangesAsync();
+                    var document = await documentRepository.GetAsync<Document>(
+                        x => x, x => x.Id == job.DocumentId);
+                    if (document != null)
+                    {
+                        await NotifyUserAsync(job, document, userRepository,
+                            notificationService, emailService, cancellationToken);
+                    }
                 }
             }
 
@@ -108,6 +136,42 @@ public class ProcessingJobWorker : BackgroundService
         finally
         {
             _iterationLock.Release();
+        }
+    }
+
+    private static async Task NotifyUserAsync(
+        ProcessingJob job,
+        Document document,
+        IRepository<User> userRepository,
+        INotificationService notificationService,
+        IEmailService emailService,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await userRepository.GetAsync<User>(
+                x => x, x => x.Id == document.OwnerId);
+            if (user == null)
+            {
+                return;
+            }
+
+            var completed = job.Status == ProcessingJobStatus.Completed;
+            var title = completed ? "Document processing completed" : "Document processing failed";
+            var message = completed
+                ? "Your document processing has completed successfully."
+                : "Your document processing has failed.";
+            await notificationService.CreateAsync(
+                new CreateNotificationDto { Title = title, Message = message, SentAt = DateTime.UtcNow },
+                user.Id);
+            if (!string.IsNullOrWhiteSpace(user.Email))
+            {
+                await emailService.SendAsync(user.Email, title, message, cancellationToken);
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Notification delivery must not change the persisted processing result.
         }
     }
 

@@ -51,6 +51,15 @@ public class ApiKeyService : IApiKeyService
         };
     }
 
+    public async Task<ApiKey?> ValidateAsync(string plaintextKey)
+    {
+        if (string.IsNullOrWhiteSpace(plaintextKey)) return null;
+
+        var keys = await _apiKeyRepository.GetAllAsync<ApiKey>(x => x,
+            x => x.IsActive && (x.ExpiresAt == null || x.ExpiresAt > DateTime.UtcNow));
+        return keys.FirstOrDefault(key => VerifyKey(plaintextKey, key.KeyHash));
+    }
+
     public Task<ApiKey?> GetByIdAsync(Guid id, string userId)
     {
         return _apiKeyRepository.GetAsync<ApiKey>(x => x,
@@ -128,5 +137,25 @@ public class ApiKeyService : IApiKeyService
         var hash = Rfc2898DeriveBytes.Pbkdf2(
             plaintextKey, salt, Iterations, HashAlgorithmName.SHA256, KeySize);
         return $"v1${Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
+    }
+
+    private static bool VerifyKey(string plaintextKey, string storedHash)
+    {
+        var parts = storedHash.Split('$');
+        if (parts.Length != 4 || parts[0] != "v1" ||
+            !int.TryParse(parts[1], out var iterations)) return false;
+
+        try
+        {
+            var salt = Convert.FromBase64String(parts[2]);
+            var expected = Convert.FromBase64String(parts[3]);
+            var actual = Rfc2898DeriveBytes.Pbkdf2(
+                plaintextKey, salt, iterations, HashAlgorithmName.SHA256, expected.Length);
+            return CryptographicOperations.FixedTimeEquals(actual, expected);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 }

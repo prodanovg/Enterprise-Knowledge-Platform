@@ -118,6 +118,30 @@ public class ProcessingJobService : IProcessingJobService
             asNoTracking: true);
     }
 
+    public async Task<ProcessingJob> RetryAsync(Guid id, string userId)
+    {
+        var job = await _processingJobRepository.GetAsync<ProcessingJob>(
+            x => x, x => x.Id == id && x.Document.OwnerId == userId);
+        if (job == null)
+        {
+            throw new KeyNotFoundException($"Processing job with ID '{id}' was not found.");
+        }
+        if (job.Status != ProcessingJobStatus.Failed)
+        {
+            throw new InvalidOperationException("Only failed processing jobs can be retried.");
+        }
+
+        job.Status = ProcessingJobStatus.Pending;
+        job.StartedAt = null;
+        job.FinishedAt = null;
+        job.ErrorMessage = null;
+        job.ModifiedAt = DateTime.UtcNow;
+        job.ModifiedBy = userId;
+        await _processingJobRepository.UpdateAsync(job);
+        await _processingJobRepository.SaveChangesAsync();
+        return job;
+    }
+
     public Task<List<ProcessingJob>> GetAllAsync(string userId)
     {
         return _processingJobRepository.GetAllAsync<ProcessingJob>(

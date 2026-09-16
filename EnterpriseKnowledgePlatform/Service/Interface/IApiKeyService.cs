@@ -7,6 +7,7 @@ namespace Service.Interface;
 public interface IApiKeyService
 {
     Task<ApiKeyCreationResult> CreateAsync(CreateApiKeyDto dto, string userId);
+    Task<ApiKey?> ValidateAsync(string plaintextKey);
     Task<ApiKey?> GetByIdAsync(Guid id, string userId);
     Task<List<ApiKey>> GetAllAsync(string userId);
     Task<PaginatedResult<ApiKey>> GetAllPagedAsync(

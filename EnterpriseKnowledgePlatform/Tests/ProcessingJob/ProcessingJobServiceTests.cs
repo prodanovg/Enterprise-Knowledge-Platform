@@ -183,6 +183,36 @@ public class ProcessingJobServiceTests
     }
 
     [Fact]
+    public async Task RetryAsync_ShouldResetFailedJobToPending()
+    {
+        var job = CreateJob("user-id");
+        job.Status = ProcessingJobStatus.Failed;
+        job.StartedAt = DateTime.UtcNow.AddMinutes(-2);
+        job.FinishedAt = DateTime.UtcNow.AddMinutes(-1);
+        job.ErrorMessage = "failure";
+        _processingJobRepositoryMock.Setup(x => x.GetAsync<ProcessingJobEntity>(It.IsAny<Expression<Func<ProcessingJobEntity, ProcessingJobEntity>>>(), It.IsAny<Expression<Func<ProcessingJobEntity, bool>>>(), null, null, false)).ReturnsAsync(job);
+        _processingJobRepositoryMock.Setup(x => x.UpdateAsync(job)).ReturnsAsync(job);
+        _processingJobRepositoryMock.Setup(x => x.SaveChangesAsync()).ReturnsAsync(1);
+
+        var result = await _processingJobService.RetryAsync(job.Id, "user-id");
+
+        Assert.Same(job, result);
+        Assert.Equal(ProcessingJobStatus.Pending, job.Status);
+        Assert.Null(job.StartedAt); Assert.Null(job.FinishedAt); Assert.Null(job.ErrorMessage);
+        _processingJobRepositoryMock.Verify(x => x.InsertAsync(It.IsAny<ProcessingJobEntity>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RetryAsync_ShouldRejectNonFailedJob()
+    {
+        var job = CreateJob("user-id");
+        _processingJobRepositoryMock.Setup(x => x.GetAsync<ProcessingJobEntity>(It.IsAny<Expression<Func<ProcessingJobEntity, ProcessingJobEntity>>>(), It.IsAny<Expression<Func<ProcessingJobEntity, bool>>>(), null, null, false)).ReturnsAsync(job);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _processingJobService.RetryAsync(job.Id, "user-id"));
+        _processingJobRepositoryMock.Verify(x => x.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ShouldReturnNull_WhenDocumentBelongsToAnotherUser()
     {
         var job = CreateJob("another-user");

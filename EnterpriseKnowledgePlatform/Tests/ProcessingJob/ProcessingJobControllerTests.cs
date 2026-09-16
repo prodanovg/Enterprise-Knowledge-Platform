@@ -90,6 +90,23 @@ public class ProcessingJobControllerTests
     }
 
     [Fact]
+    public async Task Retry_ShouldReturnOkNotFoundConflictOrUnauthorized()
+    {
+        SetUser("user-id");
+        var id = Guid.NewGuid();
+        _serviceMock.Setup(x => x.RetryAsync(id, "user-id"))
+            .ReturnsAsync(new ProcessingJobEntity { Id = id, Status = ProcessingJobStatus.Pending });
+        Assert.IsType<OkObjectResult>((await _controller.Retry(id)).Result);
+
+        _serviceMock.Setup(x => x.RetryAsync(id, "user-id")).ThrowsAsync(new KeyNotFoundException());
+        Assert.IsType<NotFoundResult>((await _controller.Retry(id)).Result);
+        _serviceMock.Setup(x => x.RetryAsync(id, "user-id")).ThrowsAsync(new InvalidOperationException());
+        Assert.IsType<ConflictResult>((await _controller.Retry(id)).Result);
+        SetUnauthenticatedUser();
+        Assert.IsType<UnauthorizedResult>((await _controller.Retry(id)).Result);
+    }
+
+    [Fact]
     public async Task GetAll_ShouldReturnOk()
     {
         SetUser("user-id");

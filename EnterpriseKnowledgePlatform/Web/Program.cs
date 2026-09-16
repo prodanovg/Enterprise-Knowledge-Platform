@@ -2,6 +2,7 @@ using System.Text;
 using Domain.Config;
 using Domain.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -15,6 +16,7 @@ using Web.Mapper;
 using Web.Workers;
 using Web.Clients;
 using Web.Services;
+using Web.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,11 +47,15 @@ builder.Services.AddIdentity<User, IdentityRole>()
 builder.Services
     .AddAuthentication(options =>
     {
-        options.DefaultAuthenticateScheme =
-            JwtBearerDefaults.AuthenticationScheme;
-
-        options.DefaultChallengeScheme =
-            JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = "Application";
+        options.DefaultChallengeScheme = "Application";
+    })
+    .AddPolicyScheme("Application", "JWT or API key", options =>
+    {
+        options.ForwardDefaultSelector = context =>
+            context.Request.Headers.ContainsKey("X-API-Key")
+                ? ApiKeyAuthenticationHandler.Scheme
+                : JwtBearerDefaults.AuthenticationScheme;
     })
     .AddJwtBearer(options =>
     {
@@ -71,6 +77,9 @@ builder.Services
                 ClockSkew = TimeSpan.Zero
             };
     });
+builder.Services.AddAuthentication()
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+        ApiKeyAuthenticationHandler.Scheme, _ => { });
 
 builder.Services.AddScoped(
     typeof(IRepository<>),
@@ -78,6 +87,7 @@ builder.Services.AddScoped(
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProcessingJobService, ProcessingJobService>();
+builder.Services.AddScoped<IProcessingResultService, ProcessingResultService>();
 builder.Services.AddScoped<ISemanticBlockService, SemanticBlockService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<ITripleProvenanceService, TripleProvenanceService>();
@@ -86,11 +96,14 @@ builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IEntityTypeService, EntityTypeService>();
 builder.Services.AddScoped<IGraphEntityService, GraphEntityService>();
 builder.Services.AddScoped<IGraphRelationshipService, GraphRelationshipService>();
+builder.Services.AddScoped<IGraphQueryService, GraphQueryService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.AddScoped<AuthMapper>();
 builder.Services.AddScoped<DocumentMapper>();
 builder.Services.AddScoped<ProcessingJobMapper>();
+builder.Services.AddScoped<ProcessingResultMapper>();
 builder.Services.AddScoped<SemanticBlockMapper>();
 builder.Services.AddScoped<TripleProvenanceMapper>();
 builder.Services.AddScoped<TripleMapper>();
@@ -98,6 +111,7 @@ builder.Services.AddScoped<ApiKeyMapper>();
 builder.Services.AddScoped<EntityTypeMapper>();
 builder.Services.AddScoped<GraphEntityMapper>();
 builder.Services.AddScoped<GraphRelationshipMapper>();
+builder.Services.AddScoped<GraphQueryMapper>();
 builder.Services.AddScoped<NotificationMapper>();
 builder.Services.AddHostedService<ProcessingJobWorker>();
 builder.Services.AddHttpClient<IProcessingApiClient, ProcessingApiClient>((serviceProvider, client) =>

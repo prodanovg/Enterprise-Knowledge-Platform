@@ -37,6 +37,38 @@ public class ApiKeyServiceTests
     }
 
     [Fact]
+    public async Task ValidateAsync_ShouldAcceptGeneratedActiveKey()
+    {
+        ApiKeyEntity? persisted = null;
+        _repository.Setup(x => x.InsertAsync(It.IsAny<ApiKeyEntity>()))
+            .Callback<ApiKeyEntity>(x => persisted = x)
+            .ReturnsAsync((ApiKeyEntity x) => x);
+        _repository.Setup(x => x.SaveChangesAsync()).ReturnsAsync(1);
+        var created = await _service.CreateAsync(new CreateApiKeyDto(), "user-id");
+        _repository.Setup(x => x.GetAllAsync<ApiKeyEntity>(
+                It.IsAny<Expression<Func<ApiKeyEntity, ApiKeyEntity>>>(),
+                It.IsAny<Expression<Func<ApiKeyEntity, bool>>>(), null, null, null))
+            .ReturnsAsync(new List<ApiKeyEntity> { persisted! });
+
+        var result = await _service.ValidateAsync(created.PlaintextKey);
+
+        Assert.Same(persisted, result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ShouldRejectInactiveAndExpiredKeys()
+    {
+        var key = new ApiKeyEntity { IsActive = false, ExpiresAt = DateTime.UtcNow.AddMinutes(1) };
+        _repository.Setup(x => x.GetAllAsync<ApiKeyEntity>(It.IsAny<Expression<Func<ApiKeyEntity, ApiKeyEntity>>>(), It.IsAny<Expression<Func<ApiKeyEntity, bool>>>(), null, null, null))
+            .ReturnsAsync(new List<ApiKeyEntity> { key });
+        Assert.Null(await _service.ValidateAsync("key"));
+
+        key.IsActive = true;
+        key.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        Assert.Null(await _service.ValidateAsync("key"));
+    }
+
+    [Fact]
     public async Task GetByIdAsync_ShouldUseOwnershipFilter()
     {
         var key = NewKey("user-id");

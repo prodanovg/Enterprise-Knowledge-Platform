@@ -10,6 +10,7 @@ public interface IProcessingJobService
     Task<List<ProcessingJob>> StartProcessingAsync(
         IEnumerable<Guid> documentIds, string userId);
     Task<ProcessingJob?> GetByIdAsync(Guid id, string userId);
+    Task<ProcessingJob> RetryAsync(Guid id, string userId);
     Task<List<ProcessingJob>> GetAllAsync(string userId);
     Task<PaginatedResult<ProcessingJob>> GetAllPagedAsync(
         int pageNumber, int pageSize, string userId);
