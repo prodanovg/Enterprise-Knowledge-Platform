@@ -4,6 +4,7 @@ import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Divider,
 import { getDocuments, type DocumentResponse } from '../services/documentApi'
 import { getNotifications, type NotificationResponse } from '../services/notificationApi'
 import { getProcessingJobs, type ProcessingJobResponse } from '../services/processingJobApi'
+import { getAuthIdentity } from '../services/authStorage'
 
 function statusLabel(status: string | number, values: string[]) { return typeof status === 'number' ? values[status] ?? 'Unknown' : status }
 function statusColor(status: string): 'default' | 'primary' | 'success' | 'error' | 'warning' { if (status === 'Completed' || status === 'Processed') return 'success'; if (status === 'Failed') return 'error'; if (status === 'Processing') return 'primary'; if (status === 'Pending') return 'warning'; return 'default' }
@@ -13,6 +14,7 @@ function SectionError({ message }: { message?: string }) { return message ? <Ale
 
 export function Dashboard() {
   const navigate = useNavigate()
+  const displayIdentity = getAuthIdentity() ?? 'there'
   const [documents, setDocuments] = useState<DocumentResponse[]>([])
   const [jobs, setJobs] = useState<ProcessingJobResponse[]>([])
   const [notifications, setNotifications] = useState<NotificationResponse[]>([])
@@ -41,7 +43,7 @@ export function Dashboard() {
   if (loading) return <Box sx={{ display: 'grid', placeItems: 'center', py: 12 }}><CircularProgress /></Box>
 
   return <Stack spacing={3.5}>
-    <Box><Typography variant="h4" gutterBottom>Welcome back, Jordan</Typography><Typography color="text.secondary">Here’s an overview of your knowledge workspace.</Typography></Box>
+    <Box><Typography variant="h4" gutterBottom>Welcome back, {displayIdentity}</Typography><Typography color="text.secondary">Here’s an overview of your knowledge workspace.</Typography></Box>
     {errors.length > 0 && <Alert severity="warning">Some dashboard sections could not be loaded: {errors.join(' ')}</Alert>}
 
     <Grid container spacing={2.5}>

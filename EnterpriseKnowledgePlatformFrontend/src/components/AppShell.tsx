@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { AppBar, Avatar, Badge, Box, Button, Divider, IconButton, List, ListItemButton, ListItemText, Toolbar, Tooltip, Typography } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { clearAuthToken } from '../services/authStorage'
+import { clearAuthToken, getAuthIdentity } from '../services/authStorage'
 import { getNotifications, getReadNotificationIds, NOTIFICATIONS_CHANGED_EVENT } from '../services/notificationApi'
 
 const navigationItems = [
@@ -31,6 +31,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const location = useLocation()
   const currentPage = navigationItems.find((item) => isActivePath(location.pathname, item.path))?.label ?? 'Page not found'
+  const identity = getAuthIdentity()
+  const displayIdentity = identity ?? 'there'
+  const initials = identity ? identity.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() : '?'
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
@@ -49,5 +52,5 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const handleLogout = () => { clearAuthToken(); navigate('/login', { replace: true }) }
 
-  return <Box sx={{ display: 'flex', minHeight: '100vh' }}><Box component="aside" sx={{ width: 260, bgcolor: 'background.paper', borderRight: 1, borderColor: 'divider', display: { xs: 'none', md: 'block' }, flexShrink: 0 }}><Brand /><Divider /><Navigation /></Box><Box sx={{ flexGrow: 1, minWidth: 0 }}><AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}><Toolbar sx={{ justifyContent: 'space-between', minHeight: { xs: 64, sm: 72 } }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Typography variant="h6" sx={{ display: { xs: 'block', md: 'none' } }}>EKP</Typography><Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' } }}>{currentPage}</Typography></Box><Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 } }}><Tooltip title="Notifications"><IconButton size="small" aria-label={`${unreadCount} unread notifications`} onClick={() => navigate('/notifications')}><Badge badgeContent={unreadCount || undefined} color="primary"><Box component="span" sx={{ fontSize: 18, lineHeight: 1, color: 'primary.main' }}>●</Box></Badge></IconButton></Tooltip><Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 14 }}>JD</Avatar><Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 600 }}>Jordan Doe</Typography><Button size="small" color="inherit" onClick={handleLogout}>Logout</Button></Box></Toolbar></AppBar><Box sx={{ display: { xs: 'block', md: 'none' }, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }}><Navigation mobile /></Box><Box component="main" sx={{ width: '100%', maxWidth: 1440, mx: 'auto', boxSizing: 'border-box', p: { xs: 2, sm: 3, lg: 5 } }}>{children}</Box></Box></Box>
+  return <Box sx={{ display: 'flex', minHeight: '100vh' }}><Box component="aside" sx={{ width: 260, bgcolor: 'background.paper', borderRight: 1, borderColor: 'divider', display: { xs: 'none', md: 'block' }, flexShrink: 0 }}><Brand /><Divider /><Navigation /></Box><Box sx={{ flexGrow: 1, minWidth: 0 }}><AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}><Toolbar sx={{ justifyContent: 'space-between', minHeight: { xs: 64, sm: 72 } }}><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Typography variant="h6" sx={{ display: { xs: 'block', md: 'none' } }}>EKP</Typography><Typography variant="h6" sx={{ display: { xs: 'none', sm: 'block' } }}>{currentPage}</Typography></Box><Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1.5 } }}><Tooltip title="Notifications"><IconButton size="small" aria-label={`${unreadCount} unread notifications`} onClick={() => navigate('/notifications')}><Badge badgeContent={unreadCount || undefined} color="primary"><Box component="span" sx={{ fontSize: 18, lineHeight: 1, color: 'primary.main' }}>●</Box></Badge></IconButton></Tooltip><Avatar sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 14 }}>{initials}</Avatar><Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' }, fontWeight: 600 }}>{displayIdentity}</Typography><Button size="small" color="inherit" onClick={handleLogout}>Logout</Button></Box></Toolbar></AppBar><Box sx={{ display: { xs: 'block', md: 'none' }, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }}><Navigation mobile /></Box><Box component="main" sx={{ width: '100%', maxWidth: 1440, mx: 'auto', boxSizing: 'border-box', p: { xs: 2, sm: 3, lg: 5 } }}>{children}</Box></Box></Box>
 }
