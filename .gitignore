@@ -38,6 +38,40 @@ ScaffoldingReadMe.txt
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
+
+# Python virtual environments, caches, and compiled files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# JavaScript dependencies and frontend build output
+node_modules/
+dist/
+build/
+coverage/
+
+# Local databases and generated application data
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+Web/App_Data/uploads/
+**/App_Data/uploads/
+
+# IDE and local database metadata
+.idea/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs and local tool output
+*.log
+logs/
 
 # Others
 ~$*

@@ -116,7 +116,7 @@ export function Documents() {
       {error && <Alert severity="error">{error}</Alert>}
       {success && <Alert severity="success">{success}</Alert>}
 
-      <Card>
+      <Card sx={{ borderTop: '3px solid', borderColor: 'secondary.main' }}>
         <CardContent sx={{ p: { xs: 2.5, sm: 3 } }}>
           <Typography variant="h6" gutterBottom>Upload a document</Typography>
           <Box component="form" onSubmit={handleUpload} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>

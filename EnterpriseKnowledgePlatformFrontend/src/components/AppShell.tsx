@@ -18,7 +18,7 @@ function isActivePath(pathname: string, itemPath: string) {
 }
 
 function Brand() {
-  return <Box sx={{ px: 2.5, py: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}><Box sx={{ width: 34, height: 34, borderRadius: 1.5, bgcolor: 'primary.main', display: 'grid', placeItems: 'center', color: 'white', fontWeight: 800, fontFamily: 'monospace' }}>E</Box><Box><Typography sx={{ fontWeight: 800, lineHeight: 1.1 }}>Enterprise</Typography><Typography variant="caption" color="text.secondary">Knowledge Platform <Box component="span" sx={{ color: 'secondary.main' }}>// workspace</Box></Typography></Box></Box>
+  return <Box sx={{ px: 2.5, py: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}><Box sx={{ width: 34, height: 34, borderRadius: 1, bgcolor: 'primary.main', display: 'grid', placeItems: 'center', color: 'white', fontWeight: 800, fontFamily: 'monospace' }}>E</Box><Box><Typography sx={{ fontWeight: 800, lineHeight: 1.1 }}>Enterprise</Typography><Typography variant="caption" color="text.secondary">Knowledge Platform <Box component="span" sx={{ color: 'secondary.main', fontFamily: 'monospace' }}>// workspace</Box></Typography></Box></Box>
 }
 
 function NotificationsIcon() {
@@ -28,7 +28,7 @@ function NotificationsIcon() {
 function Navigation({ mobile = false }: { mobile?: boolean }) {
   const location = useLocation()
   const navigate = useNavigate()
-  return <List sx={{ px: 1.5, py: mobile ? 0.5 : 1 }}>{navigationItems.map((item) => { const active = isActivePath(location.pathname, item.path); return <ListItemButton key={item.path} selected={active} onClick={() => navigate(item.path)} sx={{ borderRadius: 2, mb: 0.5, py: 1.15, '&.Mui-selected': { bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' } }, '&:hover': { bgcolor: 'action.hover' } }}><Box sx={{ width: 8, height: 8, borderRadius: '50%', mr: 2, bgcolor: active ? 'secondary.main' : 'transparent', opacity: active ? 0.8 : 1 }} /><ListItemText primary={item.label} sx={{ fontSize: 14, fontWeight: active ? 700 : 500 }} /></ListItemButton> })}</List>
+  return <List sx={{ px: 1.5, py: mobile ? 0.5 : 1 }}>{navigationItems.map((item) => { const active = isActivePath(location.pathname, item.path); return <ListItemButton key={item.path} selected={active} onClick={() => navigate(item.path)} sx={{ borderRadius: 1, mb: 0.5, py: 1.05, '&.Mui-selected': { bgcolor: 'primary.main', color: 'primary.contrastText', '&:hover': { bgcolor: 'primary.dark' } }, '&:hover': { bgcolor: 'action.hover' } }}><Box sx={{ width: 6, height: 6, borderRadius: '50%', mr: 2, bgcolor: active ? 'secondary.main' : 'transparent', opacity: active ? 0.9 : 1 }} /><ListItemText primary={item.label} sx={{ fontSize: 14, fontWeight: active ? 700 : 500 }} /></ListItemButton> })}</List>
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
