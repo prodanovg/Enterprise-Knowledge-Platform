@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Divider, Grid, Stack, Typography } from '@mui/material'
 import { getDocuments, type DocumentResponse } from '../services/documentApi'
@@ -8,6 +8,7 @@ import { getAuthIdentity } from '../services/authStorage'
 
 function statusLabel(status: string | number, values: string[]) { return typeof status === 'number' ? values[status] ?? 'Unknown' : status }
 function statusColor(status: string): 'default' | 'primary' | 'success' | 'error' | 'warning' { if (status === 'Completed' || status === 'Processed') return 'success'; if (status === 'Failed') return 'error'; if (status === 'Processing') return 'primary'; if (status === 'Pending') return 'warning'; return 'default' }
+function isActiveJob(status: string | number) { const label = statusLabel(status, ['Pending', 'Processing', 'Completed', 'Failed']); return label === 'Pending' || label === 'Processing' }
 function formatDate(value: string | null) { const date = new Date(value ?? ''); return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }
 
 function SectionError({ message }: { message?: string }) { return message ? <Alert severity="error" sx={{ mb: 2 }}>{message}</Alert> : null }
@@ -20,6 +21,7 @@ export function Dashboard() {
   const [notifications, setNotifications] = useState<NotificationResponse[]>([])
   const [errors, setErrors] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const jobRequestInFlight = useRef(false)
 
   useEffect(() => {
     const loadOverview = async () => {
@@ -33,6 +35,18 @@ export function Dashboard() {
     }
     void loadOverview()
   }, [])
+
+  useEffect(() => {
+    if (!jobs.some((job) => isActiveJob(job.status))) return undefined
+    const interval = window.setInterval(() => {
+      if (jobRequestInFlight.current) return
+      jobRequestInFlight.current = true
+      void getProcessingJobs()
+        .then(setJobs)
+        .finally(() => { jobRequestInFlight.current = false })
+    }, 5000)
+    return () => window.clearInterval(interval)
+  }, [jobs])
 
   const jobCounts = useMemo(() => ['Pending', 'Processing', 'Completed', 'Failed'].map((status) => ({ status, count: jobs.filter((job) => statusLabel(job.status, ['Pending', 'Processing', 'Completed', 'Failed']) === status).length })), [jobs])
   const recentDocuments = useMemo(() => [...documents].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5), [documents])
