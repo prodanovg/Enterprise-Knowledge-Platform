@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Domain.Models;
 using Web.Services;
 using Web.Response;
@@ -38,8 +37,9 @@ public class ProcessingApiClient : IProcessingApiClient
 
         response.EnsureSuccessStatusCode();
 
-        return await response.Content.ReadFromJsonAsync<ProcessingApiResponse>(
-                   cancellationToken: cancellationToken)
-               ?? new ProcessingApiResponse { Success = false };
+        return new ProcessingApiResponse
+        {
+            Success = true
+        };
     }
 }
