@@ -5,12 +5,14 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI(title="Mock document processing service")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DOTNET_API_BASE_URL = os.getenv("DOTNET_API_BASE_URL", "https://localhost:5001").rstrip("/")
+DOTNET_API_BASE_URL = os.getenv("DOTNET_API_BASE_URL", "http://localhost:5182").rstrip("/")
 PROCESSING_RESULT_PATH = os.getenv("PROCESSING_RESULT_PATH", "/api/ProcessingJob/{processing_job_id}/result")
 MOCK_DELAY_SECONDS = float(os.getenv("MOCK_DELAY_SECONDS", "2"))
 DOTNET_API_KEY = os.getenv("DOTNET_API_KEY", "")
@@ -21,9 +23,11 @@ async def send_processing_result(processing_job_id: str, payload: dict) -> None:
         raise RuntimeError("DOTNET_API_KEY is required for callback authentication")
     callback_path = PROCESSING_RESULT_PATH.replace("{processing_job_id}", processing_job_id)
     callback_url = f"{DOTNET_API_BASE_URL}/{callback_path.lstrip('/')}"
+    logger.info("Sending processing callback: method=POST url=%s", callback_url)
     async with httpx.AsyncClient(verify=False, timeout=30) as client:
         response = await client.post(callback_url, json=payload,
                                      headers={"X-API-Key": DOTNET_API_KEY})
+        logger.info("Processing callback response: status=%s url=%s", getattr(response, "status_code", "unknown"), callback_url)
         response.raise_for_status()
 
 
@@ -56,7 +60,7 @@ async def process_document(
     try:
         await send_processing_result(processing_job_id, result)
     except (httpx.HTTPError, RuntimeError) as exc:
-        logger.error("Callback failed for processingJobId=%s: %s", processing_job_id, type(exc).__name__)
+        logger.exception("Callback failed for processingJobId=%s: %s", processing_job_id, exc)
         raise HTTPException(status_code=502, detail=".NET processing-result callback failed") from exc
 
     logger.info("Processing completed and callback succeeded: processingJobId=%s documentId=%s",

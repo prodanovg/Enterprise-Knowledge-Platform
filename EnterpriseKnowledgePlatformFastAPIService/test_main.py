@@ -21,7 +21,7 @@ class CallbackTests(unittest.TestCase):
              patch.object(main.httpx, "AsyncClient", return_value=client):
             asyncio.run(main.send_processing_result("job-1", {"triples": []}))
         context.post.assert_awaited_once_with(
-            "https://localhost:5001/api/ProcessingJob/job-1/result",
+            "http://localhost:5182/api/ProcessingJob/job-1/result",
             json={"triples": []}, headers={"X-API-Key": "test-key"})
 
     def test_missing_api_key_fails_without_sending(self):
