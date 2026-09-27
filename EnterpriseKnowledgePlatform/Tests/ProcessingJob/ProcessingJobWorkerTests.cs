@@ -65,6 +65,33 @@ public class ProcessingJobWorkerTests
     }
 
     [Fact]
+    public async Task ProcessPendingJobsAsync_ShouldNotOverwriteCompletedCallback()
+    {
+        var job = new ProcessingJobEntity { Id = Guid.NewGuid(), Status = ProcessingJobStatus.Pending };
+        var repository = CreateRepository(job);
+        repository.Setup(x => x.GetAsync<ProcessingJobEntity>(
+                It.IsAny<Expression<Func<ProcessingJobEntity, ProcessingJobEntity>>>(),
+                It.IsAny<Expression<Func<ProcessingJobEntity, bool>>>(), null, null, true))
+            .ReturnsAsync(new ProcessingJobEntity
+            {
+                Id = job.Id,
+                Status = ProcessingJobStatus.Completed
+            });
+        var client = new Mock<IProcessingApiClient>();
+        client.Setup(x => x.SendProcessingJobAsync(
+                It.IsAny<ProcessingJobEntity>(), It.IsAny<DocumentEntity>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProcessingApiResponse { Success = true });
+        var worker = CreateWorker(repository.Object, client.Object,
+            CreateDocumentRepository(job).Object, users: CreateUserRepository().Object);
+
+        await worker.ProcessPendingJobsAsync();
+
+        Assert.Equal(ProcessingJobStatus.Completed, job.Status);
+        repository.Verify(x => x.SaveChangesAsync(), Times.Once);
+        worker.Dispose();
+    }
+
+    [Fact]
     public async Task ProcessPendingJobsAsync_ShouldMarkFailedWhenApiResponseFails()
     {
         var job = new ProcessingJobEntity { Id = Guid.NewGuid(), Status = ProcessingJobStatus.Pending };

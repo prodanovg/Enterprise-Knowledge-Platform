@@ -94,6 +94,15 @@ public class ProcessingJobWorker : BackgroundService
 
                     var result = await processingApiClient.SendProcessingJobAsync(
                         job, document, cancellationToken);
+                    if (await IsAlreadyCompletedAsync(repository, job.Id))
+                    {
+                        job.Status = ProcessingJobStatus.Completed;
+                        job.ErrorMessage = null;
+                        await NotifyUserAsync(job, document, userRepository,
+                            notificationService, emailService, cancellationToken);
+                        continue;
+                    }
+
                     job.FinishedAt = DateTime.UtcNow;
                     job.ModifiedAt = job.FinishedAt.Value;
                     job.Status = result.Success
@@ -115,6 +124,21 @@ public class ProcessingJobWorker : BackgroundService
                     exception is ArgumentException ||
                     exception is IOException)
                 {
+                    if (await IsAlreadyCompletedAsync(repository, job.Id))
+                    {
+                        job.Status = ProcessingJobStatus.Completed;
+                        job.ErrorMessage = null;
+                        var completedDocument = await documentRepository.GetAsync<Document>(
+                            x => x, x => x.Id == job.DocumentId);
+                        if (completedDocument != null)
+                        {
+                            await NotifyUserAsync(job, completedDocument, userRepository,
+                                notificationService, emailService, cancellationToken);
+                        }
+
+                        continue;
+                    }
+
                     job.Status = ProcessingJobStatus.Failed;
                     job.ErrorMessage = "Processing API communication failed.";
                     job.FinishedAt = DateTime.UtcNow;
@@ -171,8 +195,18 @@ public class ProcessingJobWorker : BackgroundService
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            // Notification delivery must not change the persisted processing result.
         }
+    }
+
+    private static async Task<bool> IsAlreadyCompletedAsync(
+        IRepository<ProcessingJob> repository,
+        Guid processingJobId)
+    {
+        var currentJob = await repository.GetAsync<ProcessingJob>(
+            x => x,
+            x => x.Id == processingJobId,
+            asNoTracking: true);
+        return currentJob?.Status == ProcessingJobStatus.Completed;
     }
 
     public override void Dispose()
