@@ -113,6 +113,7 @@ builder.Services.AddScoped<GraphEntityMapper>();
 builder.Services.AddScoped<GraphRelationshipMapper>();
 builder.Services.AddScoped<GraphQueryMapper>();
 builder.Services.AddScoped<NotificationMapper>();
+builder.Services.AddScoped<UserMapper>();
 builder.Services.AddHostedService<ProcessingJobWorker>();
 builder.Services.AddHttpClient<IProcessingApiClient, ProcessingApiClient>((serviceProvider, client) =>
 {
