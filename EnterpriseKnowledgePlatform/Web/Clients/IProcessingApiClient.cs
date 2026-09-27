@@ -3,7 +3,7 @@ using Web.Response;
 
 namespace Web.Clients;
 
-public interface iIProcessingApiClient
+public interface IProcessingApiClient
 {
     Task<ProcessingApiResponse> SendProcessingJobAsync(
         ProcessingJob processingJob,

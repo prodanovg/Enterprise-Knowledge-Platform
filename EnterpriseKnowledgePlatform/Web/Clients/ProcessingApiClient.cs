@@ -5,8 +5,7 @@ using Web.Response;
 
 namespace Web.Clients;
 
-public class ProcessingApiClient
-    : IProcessingApiClient
+public class ProcessingApiClient : IProcessingApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
