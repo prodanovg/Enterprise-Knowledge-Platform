@@ -87,8 +87,7 @@ public class GraphEntityService : IGraphEntityService
             x => x.SourceEntityId == id || x.TargetEntityId == id);
         if (referenced)
         {
-            throw new InvalidOperationException(
-                "The graph entity cannot be deleted while graph relationships reference it.");
+            throw new InvalidOperationException("The graph entity cannot be deleted while graph relationships reference it.");
         }
 
         await _graphEntityRepository.DeleteAsync(entity);

@@ -62,8 +62,7 @@ public class NotificationService : INotificationService
             x => x, x => x.Id == id && x.UserId == userId);
         if (notification == null)
         {
-            throw new KeyNotFoundException(
-                $"Notification with ID '{id}' was not found.");
+            throw new KeyNotFoundException($"Notification with ID '{id}' was not found.");
         }
 
         notification.Title = dto.Title;

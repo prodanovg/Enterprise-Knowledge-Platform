@@ -28,8 +28,7 @@ public class SemanticBlockService : ISemanticBlockService
 
         if (document == null)
         {
-            throw new KeyNotFoundException(
-                $"Document with ID '{dto.DocumentId}' was not found.");
+            throw new KeyNotFoundException($"Document with ID '{dto.DocumentId}' was not found.");
         }
 
         var now = DateTime.UtcNow;
@@ -72,14 +71,12 @@ public class SemanticBlockService : ISemanticBlockService
     {
         if (pageNumber < 1)
         {
-            throw new ArgumentException(
-                "Page number must be greater than or equal to 1.");
+            throw new ArgumentException("Page number must be greater than or equal to 1.");
         }
 
         if (pageSize <= 0)
         {
-            throw new ArgumentException(
-                "Page size must be greater than zero.");
+            throw new ArgumentException("Page size must be greater than zero.");
         }
 
         return await _semanticBlockRepository
@@ -102,8 +99,7 @@ public class SemanticBlockService : ISemanticBlockService
 
         if (semanticBlock == null)
         {
-            throw new KeyNotFoundException(
-                $"Semantic block with ID '{id}' was not found.");
+            throw new KeyNotFoundException($"Semantic block with ID '{id}' was not found.");
         }
 
         semanticBlock.Text = dto.Text;
@@ -127,7 +123,7 @@ public class SemanticBlockService : ISemanticBlockService
 
         if (semanticBlock == null)
         {
-            return false;
+            throw new KeyNotFoundException($"Semantic block with ID '{id}' was not found.");
         }
 
         await _semanticBlockRepository.DeleteAsync(semanticBlock);

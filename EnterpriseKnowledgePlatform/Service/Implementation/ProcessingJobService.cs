@@ -29,8 +29,7 @@ public class ProcessingJobService : IProcessingJobService
 
         if (document == null)
         {
-            throw new KeyNotFoundException(
-                $"Document with ID '{dto.DocumentId}' was not found.");
+            throw new KeyNotFoundException($"Document with ID '{dto.DocumentId}' was not found.");
         }
 
         var now = DateTime.UtcNow;
@@ -64,10 +63,9 @@ public class ProcessingJobService : IProcessingJobService
 
             if (document == null)
             {
-                throw new KeyNotFoundException(
-                    $"Document with ID '{documentId}' was not found.");
+                throw new KeyNotFoundException($"Document with ID '{documentId}' was not found.");
             }
-
+    
             documents.Add(document);
         }
 
@@ -155,14 +153,12 @@ public class ProcessingJobService : IProcessingJobService
     {
         if (pageNumber < 1)
         {
-            throw new ArgumentException(
-                "Page number must be greater than or equal to 1.");
+            throw new ArgumentException("Page number must be greater than or equal to 1.");
         }
 
         if (pageSize <= 0)
         {
-            throw new ArgumentException(
-                "Page size must be greater than zero.");
+            throw new ArgumentException("Page size must be greater than zero.");
         }
 
         return await _processingJobRepository.GetAllPagedAsync<ProcessingJob>(
@@ -184,8 +180,7 @@ public class ProcessingJobService : IProcessingJobService
 
         if (processingJob == null)
         {
-            throw new KeyNotFoundException(
-                $"Processing job with ID '{id}' was not found.");
+            throw new KeyNotFoundException($"Processing job with ID '{id}' was not found.");
         }
 
         processingJob.Status = dto.Status;

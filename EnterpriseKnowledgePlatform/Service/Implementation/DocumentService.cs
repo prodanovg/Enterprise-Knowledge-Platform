@@ -59,14 +59,12 @@ public class DocumentService : IDocumentService
     {
         if (pageNumber < 1)
         {
-            throw new ArgumentException(
-                "Page number must be greater than or equal to 1.");
+            throw new ArgumentException("Page number must be greater than or equal to 1.");
         }
 
         if (pageSize <= 0)
         {
-            throw new ArgumentException(
-                "Page size must be greater than zero.");
+            throw new ArgumentException("Page size must be greater than zero.");
         }
 
         return await _documentRepository.GetAllPagedAsync<Document>(
@@ -87,8 +85,7 @@ public class DocumentService : IDocumentService
 
         if (document == null)
         {
-            throw new KeyNotFoundException(
-                $"Document with ID '{id}' was not found.");
+            throw new KeyNotFoundException($"Document with ID '{id}' was not found.");
         }
 
         document.Name = dto.Name;
@@ -110,7 +107,7 @@ public class DocumentService : IDocumentService
 
         if (document == null)
         {
-            return false;
+            throw new KeyNotFoundException($"Document with ID '{id}' was not found.");
         }
 
         await _documentRepository.DeleteAsync(document);

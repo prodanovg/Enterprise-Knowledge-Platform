@@ -70,14 +70,12 @@ public class TripleProvenanceService : ITripleProvenanceService
     {
         if (pageNumber < 1)
         {
-            throw new ArgumentException(
-                "Page number must be greater than or equal to 1.");
+            throw new ArgumentException("Page number must be greater than or equal to 1.");
         }
 
         if (pageSize <= 0)
         {
-            throw new ArgumentException(
-                "Page size must be greater than zero.");
+            throw new ArgumentException("Page size must be greater than zero.");
         }
 
         return await _tripleProvenanceRepository
@@ -101,8 +99,7 @@ public class TripleProvenanceService : ITripleProvenanceService
 
         if (provenance == null)
         {
-            throw new KeyNotFoundException(
-                $"Triple provenance with ID '{id}' was not found.");
+            throw new KeyNotFoundException($"Triple provenance with ID '{id}' was not found.");
         }
 
         await ValidateRelationshipsAsync(
@@ -150,8 +147,7 @@ public class TripleProvenanceService : ITripleProvenanceService
 
         if (document == null)
         {
-            throw new KeyNotFoundException(
-                $"Document with ID '{documentId}' was not found.");
+            throw new KeyNotFoundException($"Document with ID '{documentId}' was not found.");
         }
 
         var triple = await _tripleRepository.GetAsync<Triple>(
@@ -160,8 +156,7 @@ public class TripleProvenanceService : ITripleProvenanceService
 
         if (triple == null)
         {
-            throw new KeyNotFoundException(
-                $"Triple with ID '{tripleId}' was not found.");
+            throw new KeyNotFoundException($"Triple with ID '{tripleId}' was not found.");
         }
 
         var semanticBlock = await _semanticBlockRepository
@@ -173,9 +168,7 @@ public class TripleProvenanceService : ITripleProvenanceService
 
         if (semanticBlock == null)
         {
-            throw new KeyNotFoundException(
-                $"Semantic block with ID '{semanticBlockId}' was not found " +
-                "for the specified document.");
+            throw new KeyNotFoundException($"Semantic block with ID '{semanticBlockId}' was not found " + "for the specified document.");
         }
     }
 }

@@ -62,8 +62,7 @@ public class GraphRelationshipService : IGraphRelationshipService
             x => x, x => x.Id == id);
         if (relationship == null)
         {
-            throw new KeyNotFoundException(
-                $"Graph relationship with ID '{id}' was not found.");
+            throw new KeyNotFoundException($"Graph relationship with ID '{id}' was not found.");
         }
 
         await ValidateEntitiesAsync(dto.SourceEntityId, dto.TargetEntityId);

@@ -71,12 +71,14 @@ public class EntityTypeService : IEntityTypeService
     {
         var entityType = await _entityTypeRepository.GetAsync<EntityType>(
             x => x, x => x.Id == id);
-        if (entityType == null) return false;
+        if (entityType == null)
+        {
+            throw new KeyNotFoundException($"Entity type with ID '{id}' was not found.");
+        }
 
         if (await _graphEntityRepository.ExistsAsync(x => x.EntityTypeId == id))
         {
-            throw new InvalidOperationException(
-                "The entity type cannot be deleted while graph entities reference it.");
+            throw new InvalidOperationException("The entity type cannot be deleted while graph entities reference it.");
         }
 
         await _entityTypeRepository.DeleteAsync(entityType);

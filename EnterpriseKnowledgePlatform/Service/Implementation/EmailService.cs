@@ -14,12 +14,7 @@ public class EmailService : IEmailService
         _configuration = configuration;
     }
 
-    public async Task SendAsync(
-        string to,
-        string subject,
-        string body,
-        CancellationToken cancellationToken = default)
-    {
+    public async Task SendAsync(string to, string subject, string body, CancellationToken cancellationToken = default) {
         var host = Required("Email:SmtpHost");
         var username = Required("Email:Username");
         var password = Required("Email:Password");

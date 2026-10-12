@@ -29,8 +29,7 @@ public class AuthService : IAuthService
 
         if (existingUser != null)
         {
-            throw new InvalidOperationException(
-                "A user with this email already exists.");
+            throw new InvalidOperationException("A user with this email already exists.");
         }
 
         var user = new User
@@ -71,8 +70,7 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedAccessException(
-                "Invalid username or password.");
+            throw new UnauthorizedAccessException("Invalid username or password.");
         }
 
         var passwordValid = await _userManager.CheckPasswordAsync(
@@ -80,8 +78,7 @@ public class AuthService : IAuthService
 
         if (!passwordValid)
         {
-            throw new UnauthorizedAccessException(
-                "Invalid username or password.");
+            throw new UnauthorizedAccessException("Invalid username or password.");
         }
 
         var roles = await _userManager.GetRolesAsync(user);
@@ -103,16 +100,13 @@ public class AuthService : IAuthService
         var jwtSettings = _configuration.GetSection("Jwt");
 
         var key = jwtSettings["Key"]
-                  ?? throw new InvalidOperationException(
-                      "JWT Key is not configured.");
+                  ?? throw new InvalidOperationException("JWT Key is not configured.");
 
         var issuer = jwtSettings["Issuer"]
-                     ?? throw new InvalidOperationException(
-                         "JWT Issuer is not configured.");
+                     ?? throw new InvalidOperationException("JWT Issuer is not configured.");
 
         var audience = jwtSettings["Audience"]
-                       ?? throw new InvalidOperationException(
-                           "JWT Audience is not configured.");
+                       ?? throw new InvalidOperationException("JWT Audience is not configured.");
 
         var expirationMinutes = int.Parse(
             jwtSettings["ExpirationMinutes"] ?? "60");
